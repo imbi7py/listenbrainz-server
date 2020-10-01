@@ -372,8 +372,17 @@ def save_playcounts_df(listens_df, recordings_df, users_df, metadata):
                               .groupBy('user_id', 'recording_id') \
                               .agg(func.count('recording_id').alias('count'))
 
-    metadata['playcounts_count'] = playcounts_df.count()
-    save_dataframe(playcounts_df, path.PLAYCOUNTS_DATAFRAME_PATH)
+    scaling_df = playcounts_df.groupBy('user_id') \
+                              .agg(func.min('count').alias('min'),
+                                   func.max('count').alias('max')) \
+                              .withColumn('factor', func.col('max') - func.col('min')) \
+                              .replace(0, 1, 'factor')
+
+    playratings_df = playcounts_df.join(scaling_df, 'user_id') \
+                                  .withColumn('rating', (func.col('count') - func.col('min')) / func.col('factor'))
+
+    metadata['playcounts_count'] = playratings_df.count()
+    save_dataframe(playratings_df, path.PLAYCOUNTS_DATAFRAME_PATH)
 
 
 def get_listens_df(mapped_listens_df, metadata):
