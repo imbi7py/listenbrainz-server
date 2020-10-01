@@ -185,31 +185,6 @@ class RecommendTestClass(SparkTestCase):
             mock_predict.return_value = MagicMock()
             recommend.generate_recommendations(candidate_set, params, limit)
 
-    def test_get_scale_rating_udf(self):
-        rating = 1.6
-        res = recommend.get_scale_rating_udf(rating)
-        self.assertEqual(res, 1.0)
-
-        rating = -1.6
-        res = recommend.get_scale_rating_udf(rating)
-        self.assertEqual(res, -0.3)
-
-        rating = 0.65579
-        res = recommend.get_scale_rating_udf(rating)
-        self.assertEqual(res, 0.828)
-
-        rating = -0.9999
-        res = recommend.get_scale_rating_udf(rating)
-        self.assertEqual(res, 0.0)
-
-    def test_scale_rating(self):
-        df = self.get_recommendation_df()
-
-        df = recommend.scale_rating(df)
-        self.assertEqual(sorted(df.columns), ['rating', 'recording_id', 'user_id'])
-        received_ratings = sorted([row.rating for row in df.collect()])
-        expected_ratings = [-0.729, 0.657, 1.0, 1.0]
-
     def test_get_candidate_set_rdd_for_user(self):
         candidate_set = self.get_candidate_set()
         users = []
@@ -399,18 +374,6 @@ class RecommendTestClass(SparkTestCase):
             schema=None
         ))
         return df
-
-    @patch('listenbrainz_spark.recommendations.recommend.current_app')
-    def test_check_for_ratings_beyond_range(self, mock_current_app):
-        top_artist_rec_df = self.get_top_artist_rec_df()
-        similar_artist_rec_df = self.get_similar_artist_rec_df()
-
-        recommend.check_for_ratings_beyond_range(top_artist_rec_df, similar_artist_rec_df)
-
-        mock_current_app.logger.info.assert_has_calls([
-            call('Some ratings are greater than 1 \nMax rating: 1.8'),
-            call('Some ratings are less than -1 \nMin rating: -2.8')
-        ])
 
     def test_create_messages(self):
         top_artist_rec_df = self.get_top_artist_rec_df()

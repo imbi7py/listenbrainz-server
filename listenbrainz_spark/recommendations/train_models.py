@@ -56,7 +56,7 @@ def parse_dataset(row):
         Args:
             row: An RDD row or element.
     """
-    return Rating(row['user_id'], row['recording_id'], row['count'])
+    return Rating(row['user_id'], row['recording_id'], row['rating'])
 
 
 def compute_rmse(model, data, n, model_id):

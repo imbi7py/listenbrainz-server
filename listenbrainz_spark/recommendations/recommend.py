@@ -163,41 +163,6 @@ def generate_recommendations(candidate_set, params: RecommendationParams, limit)
     return recommendation_df
 
 
-def get_scale_rating_udf(rating):
-    """ Get user defined function (udf) to scale ratings so that they fall in the
-        range: 0.0 -> 1.0.
-
-        Args:
-            rating (float): score given to recordings by CF.
-
-        Returns:
-            rating udf.
-    """
-    scaled_rating = (rating / 2.0) + 0.5
-
-    return round(min(max(scaled_rating, -1.0), 1.0), 3)
-
-
-def scale_rating(df):
-    """ Scale the ratings column of dataframe so that they fall in the
-        range: 0.0 -> 1.0.
-
-        Args:
-            df: Dataframe to scale.
-
-        Returns:
-            df: Dataframe with scaled rating.
-    """
-    scaling_udf = udf(get_scale_rating_udf, DoubleType())
-
-    df = df.withColumn("scaled_rating", scaling_udf(df.rating)) \
-           .select(col('recording_id'),
-                   col('user_id'),
-                   col('scaled_rating').alias('rating'))
-
-    return df
-
-
 def get_candidate_set_rdd_for_user(candidate_set_df, users):
     """ Get candidate set RDD for a given user.
 
@@ -244,28 +209,6 @@ def get_user_name_and_user_id(params: RecommendationParams, users):
         raise EmptyDataframeExcpetion('No active users found!')
 
     return users_df
-
-
-def check_for_ratings_beyond_range(top_artist_rec_df, similar_artist_rec_df):
-    """ Check if rating in top_artist_rec_df and similar_artist_rec_df does not belong to [-1, 1].
-
-        Args:
-            top_artist_rec_df (dataframe): Top artist recommendations for all users.
-            similar_artist_rec_df (dataframe): Similar artist recommendations for all users.
-    """
-    max_rating = top_artist_rec_df.select(func.max('rating').alias('rating')).take(1)[0].rating
-
-    max_rating = max(similar_artist_rec_df.select(func.max('rating').alias('rating')).take(1)[0].rating, max_rating)
-
-    min_rating = top_artist_rec_df.select(func.min('rating').alias('rating')).take(1)[0].rating
-
-    min_rating = min(similar_artist_rec_df.select(func.min('rating').alias('rating')).take(1)[0].rating, min_rating)
-
-    if max_rating > 1.0:
-        current_app.logger.info('Some ratings are greater than 1 \nMax rating: {}'.format(max_rating))
-
-    if min_rating < -1.0:
-        current_app.logger.info('Some ratings are less than -1 \nMin rating: {}'.format(min_rating))
 
 
 def create_messages(top_artist_rec_mbid_df, similar_artist_rec_mbid_df, active_user_count, total_time,
@@ -453,15 +396,8 @@ def main(recommendation_top_artist_limit=None, recommendation_similar_artist_lim
     current_app.logger.info('Took {:.2f}sec to get top artist and similar artist user count'.format(time.monotonic() - ts))
 
     ts = time.monotonic()
-    check_for_ratings_beyond_range(top_artist_rec_df, similar_artist_rec_df)
-
-    top_artist_rec_scaled_df = scale_rating(top_artist_rec_df)
-    similar_artist_rec_scaled_df = scale_rating(similar_artist_rec_df)
-    current_app.logger.info('Took {:.2f}sec to scale the ratings'.format(time.monotonic() - ts))
-
-    ts = time.monotonic()
-    top_artist_rec_mbid_df = get_recording_mbids(params, top_artist_rec_scaled_df, users_df)
-    similar_artist_rec_mbid_df = get_recording_mbids(params, similar_artist_rec_scaled_df, users_df)
+    top_artist_rec_mbid_df = get_recording_mbids(params, top_artist_rec_df, users_df)
+    similar_artist_rec_mbid_df = get_recording_mbids(params, similar_artist_rec_df, users_df)
     current_app.logger.info('Took {:.2f}sec to get mbids corresponding to recording ids'.format(time.monotonic() - ts))
 
     # persisted data must be cleared from memory after usage to avoid OOM
