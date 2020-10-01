@@ -110,6 +110,7 @@ def get_recording_mbids(params: RecommendationParams, recommendation_df, users_d
     window = Window.partitionBy('user_name').orderBy(col('rating').desc())
 
     df = recording_mbids_df.withColumn('rank', row_number().over(window)) \
+                           .withColumn('rating', func.round(col('rating'), 4)) \
                            .select('mb_recording_mbid',
                                    'rank',
                                    'rating',
