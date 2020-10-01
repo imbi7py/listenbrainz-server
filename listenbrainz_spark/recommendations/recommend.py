@@ -12,6 +12,7 @@ The same process is done for similar artist candidate set.
 """
 
 import logging
+import csv
 import time
 from datetime import datetime
 from collections import defaultdict
@@ -230,48 +231,59 @@ def create_messages(top_artist_rec_mbid_df, similar_artist_rec_mbid_df, active_u
     top_artist_rec_itr = top_artist_rec_mbid_df.toLocalIterator()
 
     user_rec = {}
+    with open('/rec/recs_top.csv', 'w') as file:
+        fields = ['user', 'recording_id', 'score']
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
 
-    for row in top_artist_rec_itr:
+        for row in top_artist_rec_itr:
+            writer.writerow({'user': row.user_name, 'recording_id': row.mb_recording_mbid, 'score': row.rating})
 
-        if user_rec.get(row.user_name) is None:
-            user_rec[row.user_name] = {}
+            if user_rec.get(row.user_name) is None:
+                user_rec[row.user_name] = {}
 
-            user_rec[row.user_name]['top_artist'] = [
-                {
-                    "recording_mbid": row.mb_recording_mbid,
-                    "score": row.rating
-                }
-            ]
-            user_rec[row.user_name]['similar_artist'] = []
-
-        else:
-            user_rec[row.user_name]['top_artist'].append(
+                user_rec[row.user_name]['top_artist'] = [
                     {
                         "recording_mbid": row.mb_recording_mbid,
                         "score": row.rating
                     }
-            )
+                ]
+                user_rec[row.user_name]['similar_artist'] = []
+
+            else:
+                user_rec[row.user_name]['top_artist'].append(
+                        {
+                            "recording_mbid": row.mb_recording_mbid,
+                            "score": row.rating
+                        }
+                )
 
     similar_artist_rec_itr = similar_artist_rec_mbid_df.toLocalIterator()
 
-    for row in similar_artist_rec_itr:
+    with open('/rec/recs_similar.csv', 'w') as file:
+        fields = ['user', 'recording_id', 'score']
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
 
-        if user_rec.get(row.user_name) is None:
-            user_rec[row.user_name] = {}
-            user_rec[row.user_name]['similar_artist'] = [
-                {
-                    "recording_mbid": row.mb_recording_mbid,
-                    "score": row.rating
-                }
-            ]
+        for row in similar_artist_rec_itr:
+            writer.writerow({'user': row.user_name, 'recording_id': row.mb_recording_mbid, 'score': row.rating})
 
-        else:
-            user_rec[row.user_name]['similar_artist'].append(
+            if user_rec.get(row.user_name) is None:
+                user_rec[row.user_name] = {}
+                user_rec[row.user_name]['similar_artist'] = [
                     {
                         "recording_mbid": row.mb_recording_mbid,
                         "score": row.rating
                     }
-            )
+                ]
+
+            else:
+                user_rec[row.user_name]['similar_artist'].append(
+                        {
+                            "recording_mbid": row.mb_recording_mbid,
+                            "score": row.rating
+                        }
+                )
 
     for user_name, data in user_rec.items():
         messages = {
