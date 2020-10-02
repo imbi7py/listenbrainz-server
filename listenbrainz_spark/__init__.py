@@ -22,6 +22,8 @@ def init_spark_session(app_name):
                 .appName(app_name) \
                 .config("spark.hadoop.dfs.client.use.datanode.hostname", "true") \
                 .config("spark.hadoop.dfs.datanode.use.datanode.hostname", "true") \
+                .config("spark.executor.memory", "20g") \
+                .config("spark.driver.memory", "20g") \
                 .config("spark.driver.maxResultSize", "4g") \
                 .getOrCreate()
         context = session.sparkContext
