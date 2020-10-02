@@ -171,7 +171,7 @@ def train(training_data, rank, iteration, lmbda, alpha, model_id):
 
     """
     try:
-        model = ALS.trainImplicit(training_data, rank, iterations=iteration, lambda_=lmbda, alpha=alpha)
+        model = ALS.trainImplicit(training_data, rank, iterations=iteration, lambda_=lmbda, alpha=alpha, nonnegative=True)
         return model
     except Py4JJavaError as err:
         current_app.logger.error('Unable to train model "{}"\n{}'.format(model_id, str(err.java_exception)), exc_info=True)
